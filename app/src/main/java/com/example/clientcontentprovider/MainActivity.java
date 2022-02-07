@@ -17,6 +17,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -28,6 +29,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     FloatingActionButton btnAdd;
+    SearchView searchView;
     ListAdapter adapter;
     List<ListItem> users;
 
@@ -41,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
                         Serializable response = intent.getSerializableExtra("response");
                         Log.d("RESPONSE", response.toString());
                         Toast.makeText(MainActivity.this, response.toString(), Toast.LENGTH_LONG);
-                        init();
+                        init(1,null);
                     }
                 }
             }
@@ -52,16 +54,40 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         btnAdd = (FloatingActionButton) findViewById(R.id.btnAdd);
+        searchView = (SearchView) findViewById(R.id.searchView);
 
         btnAdd.setOnClickListener(view -> {
             mStartForResult.launch(new Intent(this, AddUser.class));
         });
 
-        init();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                Log.d("SEARCH", "onQueryTextChange: " + newText);
+                init(2, newText);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Log.d("SEARCH", "onQueryTextSubmit: " + query);
+                return true;
+            }
+        });
+
+        init(1,null);
     }
 
-    public void init() {
-        getUsers();
+    public void init(int option, String value) {
+
+        if(option == 1){
+            getUsers();
+        }
+
+        if(option == 2){
+            getUserByName(value);
+        }
+
         adapter = new ListAdapter(users, this);
         RecyclerView recyclerView = findViewById(R.id.lstUsuarios);
         recyclerView.setHasFixedSize(true);
@@ -85,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
                         if(result > 0){
                             Toast.makeText(MainActivity.this, item.getFirstName() + " eliminado!", Toast.LENGTH_LONG).show();
                         }
-                        init();
+                        init(1,null);
                     }
                 }
         );
@@ -105,6 +131,17 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             Log.d("Consulta", "NO DEVUELVE");
+        }
+    }
+
+    private void getUserByName(String value){
+        users = new ArrayList<>();
+        Cursor cursor = getContentResolver().query(Uri.withAppendedPath(ListItem.CONTENT_URI, value), ListItem.COLUMNS_NAME, null, null, null);
+        if(cursor != null){
+            while(cursor.moveToNext()){
+                Log.d("USER", cursor.getInt(0) + " - " + cursor.getString(1));
+                users.add(new ListItem(cursor.getInt(0), "#0AB1F0", cursor.getString(1), cursor.getString(2)));
+            }
         }
     }
 }
